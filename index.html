@@ -1,0 +1,3088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adaptive and Explainable Human-Robot Collaboration | Research Project</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#060816;
+      --bg-soft:#0b1022;
+      --surface:rgba(255,255,255,0.08);
+      --surface-strong:rgba(255,255,255,0.12);
+      --stroke:rgba(255,255,255,0.14);
+      --text:#f5f7ff;
+      --muted:#a9b2d0;
+      --blue:#5b8cff;
+      --purple:#9d5cff;
+      --cyan:#4ce2ff;
+      --pink:#ff62c0;
+      --green:#4dffb5;
+      --shadow:0 18px 60px rgba(0,0,0,0.35);
+      --radius:24px;
+      --radius-sm:18px;
+      --max:1240px;
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:'Inter',sans-serif;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(157,92,255,0.18), transparent 25%),
+        radial-gradient(circle at 85% 15%, rgba(76,226,255,0.14), transparent 25%),
+        radial-gradient(circle at 70% 80%, rgba(91,140,255,0.15), transparent 22%),
+        linear-gradient(180deg, #060816 0%, #070b18 45%, #090d1a 100%);
+      color:var(--text);
+      overflow-x:hidden;
+    }
+
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
+    button,input,textarea{font:inherit}
+    .container{width:min(var(--max), calc(100% - 40px)); margin:auto}
+
+    .bg-orb{
+      position:fixed;
+      width:420px;
+      height:420px;
+      border-radius:50%;
+      filter:blur(85px);
+      opacity:.22;
+      z-index:-2;
+      pointer-events:none;
+    }
+    .orb-1{background:var(--purple); top:-100px; left:-120px;}
+    .orb-2{background:var(--cyan); top:15%; right:-120px;}
+    .orb-3{background:var(--blue); bottom:5%; left:15%;}
+
+    .noise{
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      pointer-events:none;
+      opacity:.06;
+      background-image:
+        linear-gradient(rgba(255,255,255,.4) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.4) 1px, transparent 1px);
+      background-size: 80px 80px;
+      mask-image: radial-gradient(circle at center, black, transparent 75%);
+    }
+
+    .navbar{
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      z-index:1000;
+      transition:all .35s ease;
+    }
+    .navbar.scrolled{
+      background:rgba(8,11,24,0.72);
+      backdrop-filter:blur(20px);
+      border-bottom:1px solid rgba(255,255,255,0.08);
+      box-shadow:0 8px 35px rgba(0,0,0,0.2);
+    }
+    .nav-inner{
+      width:min(var(--max), calc(100% - 40px));
+      margin:auto;
+      padding:18px 0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .brand-mark{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:linear-gradient(135deg, rgba(91,140,255,.9), rgba(157,92,255,.9));
+      box-shadow:0 10px 35px rgba(91,140,255,.35);
+      position:relative;
+      overflow:hidden;
+    }
+    .brand-mark::before,.brand-mark::after{
+      content:"";
+      position:absolute;
+      border-radius:50%;
+      background:rgba(255,255,255,.7);
+    }
+    .brand-mark::before{width:10px;height:10px;top:9px;left:9px}
+    .brand-mark::after{width:18px;height:18px;right:7px;bottom:7px;opacity:.45}
+    .brand small{
+      display:block;
+      color:var(--muted);
+      font-weight:500;
+      font-size:11px;
+      letter-spacing:1.5px;
+      text-transform:uppercase;
+      margin-top:2px;
+    }
+
+    .nav-links{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .nav-links a{
+      padding:12px 16px;
+      border-radius:999px;
+      color:#dbe4ff;
+      font-size:14px;
+      transition:all .3s ease;
+      position:relative;
+    }
+    .nav-links a:hover,
+    .nav-links a.active{
+      background:rgba(255,255,255,0.08);
+      color:#fff;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    .nav-action{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+
+    .btn{
+      border:none;
+      border-radius:999px;
+      padding:14px 22px;
+      cursor:pointer;
+      transition:transform .3s ease, box-shadow .3s ease, background .3s ease, border-color .3s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .btn:hover{transform:translateY(-3px)}
+    .btn-primary{
+      color:#fff;
+      background:linear-gradient(135deg, var(--blue), var(--purple), var(--cyan));
+      background-size:200% 200%;
+      box-shadow:0 12px 35px rgba(91,140,255,.35);
+      animation:gradientMove 7s ease infinite;
+    }
+    .btn-primary:hover{
+      box-shadow:0 18px 45px rgba(91,140,255,.45);
+    }
+    .btn-secondary{
+      color:#fff;
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.12);
+      backdrop-filter:blur(18px);
+    }
+    .btn-secondary:hover{
+      background:rgba(255,255,255,0.14);
+      box-shadow:0 12px 30px rgba(0,0,0,.25);
+    }
+
+    @keyframes gradientMove{
+      0%{background-position:0% 50%}
+      50%{background-position:100% 50%}
+      100%{background-position:0% 50%}
+    }
+
+    .hero{
+      min-height:100vh;
+      position:relative;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+    }
+    .hero video{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      z-index:-3;
+    }
+    .hero::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        linear-gradient(180deg, rgba(5,8,17,0.55) 0%, rgba(5,8,17,0.72) 35%, rgba(5,8,17,0.92) 100%),
+        radial-gradient(circle at center, rgba(91,140,255,0.1), transparent 40%);
+      z-index:-2;
+    }
+    .hero-grid{
+      width:min(var(--max), calc(100% - 40px));
+      margin:auto;
+      padding:120px 0 80px;
+      display:grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap:34px;
+      align-items:center;
+    }
+    .hero-copy{
+      max-width:760px;
+    }
+    .eyebrow{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 16px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.12);
+      backdrop-filter:blur(18px);
+      color:#dce3ff;
+      font-size:13px;
+      margin-bottom:24px;
+    }
+    .eyebrow .dot{
+      width:10px;height:10px;border-radius:50%;
+      background:linear-gradient(135deg, var(--cyan), var(--green));
+      box-shadow:0 0 20px rgba(76,226,255,.85);
+      animation:pulse 2s infinite;
+    }
+    @keyframes pulse{
+      0%,100%{transform:scale(1); opacity:1}
+      50%{transform:scale(1.35); opacity:.75}
+    }
+    .hero h1{
+      margin:0;
+      font-size:clamp(40px, 7vw, 74px);
+      line-height:1.02;
+      letter-spacing:-2.4px;
+      font-weight:900;
+    }
+    .gradient-text{
+      background:linear-gradient(120deg,#ffffff 15%, #b8c8ff 40%, #7deeff 70%, #d6b6ff 100%);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .hero p{
+      margin:24px 0 32px;
+      font-size:clamp(16px, 2.1vw, 20px);
+      line-height:1.8;
+      color:#d5dcf4;
+      max-width:720px;
+    }
+
+    .hero-actions{
+      display:flex;
+      gap:14px;
+      flex-wrap:wrap;
+      margin-bottom:34px;
+    }
+
+    .hero-stats{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(120px,1fr));
+      gap:16px;
+      margin-top:28px;
+    }
+
+    .glass{
+      background:rgba(255,255,255,0.08);
+      border:1px solid rgba(255,255,255,0.12);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(22px);
+      -webkit-backdrop-filter:blur(22px);
+      border-radius:var(--radius);
+    }
+
+    .stat{
+      padding:22px 20px;
+      position:relative;
+      overflow:hidden;
+    }
+    .stat::before{
+      content:"";
+      position:absolute;
+      inset:auto -30px -40px auto;
+      width:120px;
+      height:120px;
+      background:radial-gradient(circle, rgba(91,140,255,.22), transparent 65%);
+      border-radius:50%;
+    }
+    .stat h3{
+      margin:0 0 8px;
+      font-size:28px;
+      font-weight:800;
+    }
+    .stat span{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .hero-panel{
+      padding:22px;
+      position:relative;
+      overflow:hidden;
+    }
+    .hero-panel::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      border-radius:inherit;
+      padding:1px;
+      background:linear-gradient(135deg, rgba(91,140,255,.7), rgba(157,92,255,.55), rgba(76,226,255,.5));
+      -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;
+      mask-composite:exclude;
+      pointer-events:none;
+    }
+    .hero-panel .panel-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:18px;
+    }
+    .hero-panel .panel-top strong{font-size:15px}
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      color:#dbe5ff;
+      font-size:12px;
+      border:1px solid rgba(255,255,255,.1);
+    }
+    .mini-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      margin-top:16px;
+    }
+    .mini-card{
+      padding:18px;
+      border-radius:20px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      transition:.3s ease;
+    }
+    .mini-card:hover{transform:translateY(-4px); background:rgba(255,255,255,.08)}
+    .mini-card small{
+      color:var(--muted);
+      display:block;
+      margin-bottom:8px;
+      text-transform:uppercase;
+      letter-spacing:1px;
+      font-size:11px;
+    }
+    .mini-card strong{
+      display:block;
+      font-size:20px;
+      margin-bottom:6px;
+    }
+    .mini-card p{
+      margin:0;
+      font-size:13px;
+      line-height:1.6;
+      color:#cfdbff;
+    }
+
+    .scroll-indicator{
+      position:absolute;
+      bottom:26px;
+      left:50%;
+      transform:translateX(-50%);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      color:#d8e0ff;
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:2px;
+      opacity:.9;
+      animation:floatY 2.5s ease-in-out infinite;
+    }
+    .mouse{
+      width:28px;height:48px;border-radius:30px;
+      border:1.5px solid rgba(255,255,255,.55);
+      display:flex;justify-content:center;padding-top:8px;
+      background:rgba(255,255,255,.04);
+      backdrop-filter:blur(10px);
+    }
+    .mouse span{
+      width:5px;height:10px;border-radius:999px;background:#fff;
+      animation:wheel 1.7s infinite;
+    }
+    @keyframes wheel{
+      0%{transform:translateY(0);opacity:0}
+      35%{opacity:1}
+      100%{transform:translateY(14px);opacity:0}
+    }
+    @keyframes floatY{
+      0%,100%{transform:translate(-50%, 0)}
+      50%{transform:translate(-50%, -8px)}
+    }
+
+    section{
+      padding:110px 0;
+      position:relative;
+    }
+
+    .section-head{
+      max-width:820px;
+      margin:0 auto 50px;
+      text-align:center;
+    }
+    .section-kicker{
+      display:inline-block;
+      font-size:12px;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      color:#9cb6ff;
+      margin-bottom:14px;
+      font-weight:700;
+    }
+    .section-head h2{
+      margin:0 0 16px;
+      font-size:clamp(30px, 4vw, 52px);
+      line-height:1.05;
+      letter-spacing:-1.4px;
+    }
+    .section-head p{
+      margin:0 auto;
+      color:var(--muted);
+      font-size:17px;
+      line-height:1.8;
+      max-width:760px;
+    }
+
+    .abstract-wrap{
+      display:grid;
+      grid-template-columns:1.12fr .88fr;
+      gap:26px;
+      align-items:stretch;
+    }
+    .abstract-card,.highlight-card,.domain-card,.doc-card,.present-card,.person-card,.contact-card,.contact-info{
+      transition:transform .35s ease, box-shadow .35s ease, border-color .35s ease, background .35s ease;
+    }
+    .abstract-card:hover,.highlight-card:hover,.domain-card:hover,.doc-card:hover,.present-card:hover,.person-card:hover,.contact-card:hover,.contact-info:hover{
+      transform:translateY(-8px);
+      border-color:rgba(255,255,255,.18);
+      box-shadow:0 22px 70px rgba(0,0,0,.32);
+    }
+    .abstract-card{
+      padding:34px;
+    }
+    .abstract-card p{
+      margin:0;
+      color:#dbe1f6;
+      line-height:1.9;
+      font-size:16px;
+    }
+
+    .research-pillars{
+      display:grid;
+      gap:16px;
+    }
+    .highlight-card{
+      padding:22px 22px 20px;
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+    }
+    .icon-box{
+      min-width:54px;
+      width:54px;height:54px;
+      border-radius:16px;
+      display:grid;place-items:center;
+      background:linear-gradient(135deg, rgba(91,140,255,.24), rgba(157,92,255,.2));
+      border:1px solid rgba(255,255,255,.1);
+      font-size:24px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+    .highlight-card h3{
+      margin:0 0 8px;
+      font-size:18px;
+    }
+    .highlight-card p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.7;
+      font-size:14px;
+    }
+
+    .domain-grid{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:22px;
+    }
+    .domain-card{
+      padding:28px;
+      position:relative;
+      overflow:hidden;
+      min-height:250px;
+    }
+    .domain-card::before{
+      content:"";
+      position:absolute;
+      width:160px;height:160px;border-radius:50%;
+      background:radial-gradient(circle, rgba(157,92,255,.17), transparent 70%);
+      right:-55px;top:-55px;
+    }
+    .domain-card .icon-box{
+      margin-bottom:20px;
+    }
+    .domain-card h3{
+      margin:0 0 12px;
+      font-size:22px;
+    }
+    .domain-card p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.8;
+      font-size:15px;
+    }
+
+    .timeline{
+      position:relative;
+      max-width:920px;
+      margin:10px auto 0;
+      padding-left:28px;
+    }
+    .timeline::before{
+      content:"";
+      position:absolute;
+      left:12px;
+      top:6px;
+      bottom:6px;
+      width:2px;
+      background:linear-gradient(180deg, rgba(76,226,255,.75), rgba(157,92,255,.75), rgba(91,140,255,.3));
+      box-shadow:0 0 22px rgba(76,226,255,.22);
+    }
+    .milestone{
+      position:relative;
+      margin-bottom:26px;
+      padding:0 0 0 26px;
+    }
+    .milestone:last-child{margin-bottom:0}
+    .milestone-dot{
+      position:absolute;
+      left:-1px;
+      top:18px;
+      width:26px;height:26px;border-radius:50%;
+      background:radial-gradient(circle at 35% 35%, #fff, #9fd9ff 40%, #7b62ff 75%);
+      box-shadow:0 0 0 8px rgba(123,98,255,.08), 0 0 24px rgba(76,226,255,.4);
+      border:2px solid rgba(255,255,255,.8);
+      z-index:2;
+    }
+    .milestone-card{
+      padding:24px 26px;
+    }
+    .milestone-meta{
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:12px;
+    }
+    .tag{
+      font-size:12px;
+      letter-spacing:.5px;
+      color:#dfe6ff;
+      background:rgba(255,255,255,.08);
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.1);
+    }
+    .milestone-card h3{
+      margin:0 0 10px;
+      font-size:22px;
+    }
+    .milestone-card p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.8;
+    }
+
+    .doc-grid, .presentation-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:22px;
+    }
+    .doc-card, .present-card{
+      padding:26px;
+      position:relative;
+      overflow:hidden;
+    }
+    .doc-card::after, .present-card::after{
+      content:"";
+      position:absolute;
+      inset:auto -40px -60px auto;
+      width:140px;height:140px;border-radius:50%;
+      background:radial-gradient(circle, rgba(91,140,255,.18), transparent 70%);
+    }
+    .status{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.1);
+      margin-bottom:18px;
+    }
+    .status.completed{background:rgba(77,255,181,.08); color:#9dffd2}
+    .status.pending{background:rgba(255,183,77,.08); color:#ffd39b}
+    .doc-card h3,.present-card h3{
+      margin:0 0 10px;
+      font-size:22px;
+    }
+    .doc-card p,.present-card p{
+      margin:0 0 18px;
+      line-height:1.75;
+      color:var(--muted);
+      font-size:15px;
+    }
+    .card-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+    .btn-small{
+      padding:11px 16px;
+      font-size:14px;
+    }
+
+    .team-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:22px;
+    }
+    .person-card{
+      padding:28px 24px;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .person-card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg, rgba(255,255,255,.03), transparent 45%);
+      pointer-events:none;
+    }
+    .person-card:hover{
+      box-shadow:0 26px 70px rgba(20,14,55,.38);
+    }
+    .avatar-wrap{
+      width:132px;
+      height:132px;
+      margin:0 auto 20px;
+      padding:4px;
+      border-radius:50%;
+      background:linear-gradient(135deg, rgba(91,140,255,.9), rgba(157,92,255,.9), rgba(76,226,255,.9));
+      box-shadow:0 16px 40px rgba(91,140,255,.25);
+    }
+    .avatar{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      border-radius:50%;
+      border:4px solid rgba(7,10,20,0.96);
+      background:linear-gradient(135deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    }
+    .role{
+      display:inline-block;
+      margin-bottom:12px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      color:#dfe6ff;
+      border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.06);
+    }
+    .person-card h3{
+      margin:0 0 6px;
+      font-size:21px;
+    }
+    .person-card .id{
+      color:#9cb1e6;
+      margin-bottom:10px;
+      font-size:14px;
+    }
+    .person-card p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.7;
+      font-size:14px;
+      word-break:break-word;
+    }
+
+    .contact-wrap{
+      display:grid;
+      grid-template-columns: .9fr 1.1fr;
+      gap:24px;
+      align-items:stretch;
+    }
+    .contact-info,.contact-card{
+      padding:30px;
+    }
+    .contact-info h3,.contact-card h3{
+      margin:0 0 14px;
+      font-size:28px;
+    }
+    .contact-info p,.contact-card p{
+      margin:0 0 26px;
+      line-height:1.8;
+      color:var(--muted);
+    }
+    .info-list{
+      display:grid;
+      gap:16px;
+    }
+    .info-item{
+      display:flex;
+      gap:16px;
+      align-items:flex-start;
+      padding:18px;
+      border-radius:18px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .info-item strong{display:block; margin-bottom:4px}
+    .info-item span{color:var(--muted); font-size:14px; line-height:1.7}
+
+    .form-grid{
+      display:grid;
+      gap:18px;
+    }
+    .field{
+      position:relative;
+    }
+    .field input,.field textarea{
+      width:100%;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.1);
+      color:#fff;
+      border-radius:18px;
+      padding:20px 18px 14px;
+      outline:none;
+      transition:.3s ease;
+      resize:vertical;
+    }
+    .field textarea{min-height:150px}
+    .field label{
+      position:absolute;
+      left:18px;
+      top:17px;
+      color:#9eb0dd;
+      pointer-events:none;
+      transition:.24s ease;
+      background:transparent;
+      padding:0 4px;
+    }
+    .field input:focus,
+    .field textarea:focus,
+    .field input:not(:placeholder-shown),
+    .field textarea:not(:placeholder-shown){
+      border-color:rgba(91,140,255,.55);
+      box-shadow:0 0 0 4px rgba(91,140,255,.12), 0 14px 40px rgba(91,140,255,.12);
+      background:rgba(255,255,255,.07);
+    }
+    .field input:focus + label,
+    .field textarea:focus + label,
+    .field input:not(:placeholder-shown) + label,
+    .field textarea:not(:placeholder-shown) + label{
+      top:-10px;
+      left:14px;
+      font-size:12px;
+      color:#d8e1ff;
+      background:#0a1020;
+      border-radius:6px;
+    }
+
+    footer{
+      padding:35px 0 46px;
+      border-top:1px solid rgba(255,255,255,.08);
+      background:rgba(255,255,255,.02);
+    }
+    .footer-inner{
+      width:min(var(--max), calc(100% - 40px));
+      margin:auto;
+      display:flex;
+      flex-wrap:wrap;
+      gap:18px;
+      align-items:center;
+      justify-content:space-between;
+      color:#98a6cb;
+      font-size:14px;
+    }
+
+    .reveal{
+      opacity:0;
+      transform:translateY(32px);
+      transition:opacity .8s ease, transform .8s ease;
+    }
+    .reveal.visible{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    .mobile-toggle{
+      display:none;
+      width:48px;
+      height:48px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.08);
+      color:#fff;
+      cursor:pointer;
+    }
+
+    @media (max-width: 1100px){
+      .hero-grid,.abstract-wrap,.contact-wrap{grid-template-columns:1fr}
+      .hero-panel{max-width:740px}
+      .domain-grid,.doc-grid,.presentation-grid,.team-grid{grid-template-columns:repeat(2,1fr)}
+    }
+
+    @media (max-width: 820px){
+      .nav-inner{padding:14px 0}
+      .mobile-toggle{display:grid;place-items:center}
+      .nav-links{
+        position:absolute;
+        top:76px;
+        left:20px;
+        right:20px;
+        padding:16px;
+        background:rgba(8,11,24,.9);
+        backdrop-filter:blur(18px);
+        border:1px solid rgba(255,255,255,.08);
+        border-radius:22px;
+        display:none;
+        flex-direction:column;
+        align-items:stretch;
+        box-shadow:var(--shadow);
+      }
+      .nav-links.show{display:flex}
+      .nav-links a{padding:14px 16px}
+      .nav-action .btn{display:none}
+      .hero{min-height:auto}
+      .hero-grid{padding:120px 0 110px}
+      .hero-stats{grid-template-columns:1fr}
+      .domain-grid,.doc-grid,.presentation-grid,.team-grid{grid-template-columns:1fr}
+      section{padding:90px 0}
+      .timeline{padding-left:18px}
+      .milestone{padding-left:22px}
+    }
+
+    @media (max-width: 560px){
+      .container,.nav-inner,.hero-grid,.footer-inner{width:min(var(--max), calc(100% - 24px))}
+      .hero h1{letter-spacing:-1.2px}
+      .hero p{font-size:15px}
+      .section-head p{font-size:15px}
+      .abstract-card,.contact-info,.contact-card,.hero-panel{padding:22px}
+      .domain-card,.doc-card,.present-card,.person-card{padding:22px}
+      .hero-actions{flex-direction:column; align-items:stretch}
+      .btn{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+  <div class="noise"></div>
+
+  <header class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#home" class="brand">
+        <span class="brand-mark"></span>
+        <span>
+          Woody HRC
+          <small>Intelligent Sorting Research</small>
+        </span>
+      </a>
+
+      <nav class="nav-links" id="navLinks">
+        <a href="#home" class="active">Home</a>
+        <a href="#domain">Domain</a>
+        <a href="#milestones">Milestones</a>
+        <a href="#documents">Documents</a>
+        <a href="#presentations">Presentations</a>
+        <a href="#team">About Us</a>
+        <a href="#contact">Contact</a>
+      </nav>
+
+      <div class="nav-action">
+        <a class="btn btn-secondary btn-small" href="#documents">View Docs</a>
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle Menu">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero" id="home">
+    <!-- Replace with your own hero video inside assets/video/hero.mp4 -->
+    <video autoplay muted loop playsinline>
+      <source src="assets/video/hero.mp4" type="video/mp4" />
+    </video>
+
+    <div class="hero-grid">
+      <div class="hero-copy reveal">
+        <div class="eyebrow">
+          <span class="dot"></span>
+          Final Year Research Project • Human–Robot Collaboration
+        </div>
+
+        <h1>
+          <span class="gradient-text">Adaptive &amp; Explainable</span><br>
+          Human‑Robot Collaboration for Intelligent Sorting Systems
+        </h1>
+
+        <p>
+          A research showcase for a multimodal learning platform built around Woody the Educational Robot,
+          combining DINOv2 material recognition, gaze-driven intention detection, YOLO-based object understanding,
+          and explainable AI for transparent robotic decision-making.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#domain" class="btn btn-primary">Explore Research</a>
+          <a href="#documents" class="btn btn-secondary">View Documents</a>
+        </div>
+
+       
+      </div>
+
+      <div class="glass hero-panel reveal">
+        <div class="panel-top">
+          <strong>Research Intelligence Overview</strong>
+          <span class="badge">Live Project Showcase</span>
+        </div>
+
+        <div class="mini-grid">
+          <div class="mini-card">
+            <small>Perception</small>
+            <strong>DINOv2</strong>
+            <p>Self-supervised texture and material classification for glass, metal, plastic, rubber, and others.</p>
+          </div>
+          <div class="mini-card">
+            <small>Interaction</small>
+            <strong>Gaze + Head Pose</strong>
+            <p>Single RGB-based user intention recognition mapped to workspace zones.</p>
+          </div>
+          <div class="mini-card">
+            <small>Detection</small>
+            <strong>YOLOv8</strong>
+            <p>Real-time object recognition for colored shapes, pattern tasks, and sorting workflows.</p>
+          </div>
+          <div class="mini-card">
+            <small>Explainability</small>
+            <strong>SHAP + RF</strong>
+            <p>Transparent recommendation logic for educational robotic decision support.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <a href="#overview" class="scroll-indicator" aria-label="Scroll to overview">
+      <div class="mouse"><span></span></div>
+      <div>Scroll</div>
+    </a>
+  </section>
+
+  <section id="overview">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="section-kicker">Research Overview</span>
+        <h2>Adaptive Explainable HRC for Intelligent Sorting</h2>
+        <p>
+          This website presents our research as both a rigorous academic project and a polished innovation showcase. Through this platform, we demonstrate our proposed solution for inclusive learning, integrating robotic sorting, gaze-based object selection, vision-based material recognition, and explainable AI-driven recommendations into a unified human-robot collaboration framework.
+        </p>
+      </div>
+
+      <div class="abstract-wrap">
+        <div class="glass abstract-card reveal">
+          <div class="section-kicker">Abstract</div>
+          <p>
+            The proposed system introduces a human-in-the-loop intelligent learning environment centered on Woody the Educational Robot. It integrates a DINOv2-based material recognition module for material classification, YOLO-powered object detection and scene understanding for identifying and localizing target objects, a Gaze and head pose intention estimation module using RGB cameras for intuitive human–robot interaction, and an explainable AI predictive sorting component that provides transparent decision support for robotic actions. Together, these four components form a multimodal collaborative framework that enables perception, intention recognition, explainability, and adaptive robotic assistance. The system supports not only intelligent object sorting and educational interaction, but also promotes trust, user engagement, cognitive learning, and accessible human–robot collaboration through transparent and assistive decision-making.
+          </p>
+        </div>
+
+        <div class="research-pillars">
+          <div class="glass highlight-card reveal">
+            <div class="icon-box">🧠</div>
+            <div>
+              <h3>Explainable Decision-Making</h3>
+              <p>SHAP-supported recommendations make the sorting process understandable for educators and learners.</p>
+            </div>
+          </div>
+          <div class="glass highlight-card reveal">
+            <div class="icon-box">👁️</div>
+            <div>
+              <h3>Non-Invasive Interaction</h3>
+              <p>Object selection is guided by gaze and head pose estimation using accessible RGB-only vision.</p>
+            </div>
+          </div>
+          <div class="glass highlight-card reveal">
+            <div class="icon-box">🤖</div>
+            <div>
+              <h3>Adaptive Robotic Learning</h3>
+              <p>Woody demonstrates sorting, pattern completion, and educational interaction in a guided learning loop.</p>
+            </div>
+          </div>
+          <div class="glass highlight-card reveal">
+            <div class="icon-box">📡</div>
+            <div>
+              <h3>Real-Time Multimodal System</h3>
+              <p>Visual, verbal, and physical interaction channels combine into one intelligent collaborative framework.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="domain">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="section-kicker">Domain</span>
+        <h2>Research foundation, methodology, and technical stack</h2>
+        <p>
+          The domain section highlights the key research areas, identified problem, system methodology, and the
+          technologies that power the intelligent sorting platform.
+        </p>
+      </div>
+
+      <div class="domain-grid">
+        <article class="glass domain-card reveal">
+          <div class="icon-box">📚</div>
+          <h3>Literature Survey</h3>
+          <p>
+            Prior work in robotic sorting, HRC, educational robotics, gaze-based intention recognition, and explainable AI
+            demonstrates strong progress, but practical systems still struggle with adaptability, affordability, and human-centered transparency.
+          </p>
+        </article>
+
+        <article class="glass domain-card reveal">
+          <div class="icon-box">🕳️</div>
+          <h3>Research Gap</h3>
+          <p>
+            Existing systems often rely on expensive hardware, fragmented modules, or industrial-only settings.
+            Few solutions combine material recognition, gaze interaction, recommendation logic, and explainability in one inclusive educational platform.
+          </p>
+        </article>
+
+        <article class="glass domain-card reveal">
+          <div class="icon-box">⚠️</div>
+          <h3>Problem Statement</h3>
+          <p>
+            Traditional educational and robotic interaction systems lack affordable, adaptive, and transparent mechanisms
+            that support differently abled learners through natural multimodal collaboration.
+          </p>
+        </article>
+
+        <article class="glass domain-card reveal">
+          <div class="icon-box">🎯</div>
+          <h3>Objectives</h3>
+          <p>
+            Build an intelligent sorting environment that supports material classification, gaze-based intention detection,
+            object-based learning tasks, and explainable recommendation-driven robotic behavior.
+          </p>
+        </article>
+
+        <article class="glass domain-card reveal">
+          <div class="icon-box">🧪</div>
+          <h3>Methodology</h3>
+          <p>
+            The workflow integrates data capture, preprocessing, DINOv2 material recognition, YOLO detection,
+            ResNet‑18 gaze classification, region mapping, Random Forest sorting recommendations, and SHAP explanations.
+          </p>
+        </article>
+
+        <article class="glass domain-card reveal">
+          <div class="icon-box">💻</div>
+          <h3>Technologies</h3>
+          <p>
+            Python, PyTorch, OpenCV, NumPy, YOLOv8, DINOv2, ResNet‑18, Random Forest, SHAP, Logistic Regression,
+            Arduino-based robot control, RGB camera streams, and web-based monitoring interfaces.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+<section id="milestones">
+<div class="container">
+
+<div class="section-head reveal">
+<span class="section-kicker">Research Journey</span>
+<h2>Innovation Roadmap</h2>
+<p>
+Progressive pathway from research concept to final thesis submission and publication.
+</p>
+</div>
+
+<style>
+
+#milestones{
+padding:90px 0;
+position:relative;
+overflow:hidden;
+}
+
+#milestones:before{
+content:"";
+position:absolute;
+width:450px;
+height:450px;
+background:radial-gradient(circle,#6ea8ff25,transparent 70%);
+top:-180px;
+left:-120px;
+filter:blur(70px);
+}
+
+#milestones:after{
+content:"";
+position:absolute;
+width:400px;
+height:400px;
+background:radial-gradient(circle,#7cc45f20,transparent 70%);
+bottom:-150px;
+right:-90px;
+filter:blur(70px);
+}
+
+/* Timeline */
+.timeline-premium{
+position:relative;
+max-width:1020px;
+margin:auto;
+padding:35px 0;
+}
+
+.timeline-premium:before{
+content:"";
+position:absolute;
+left:50%;
+top:0;
+bottom:0;
+width:6px;
+transform:translateX(-50%);
+background:linear-gradient(
+180deg,
+#7cc45f,
+#5b8cff,
+#ff8a00,
+#f1c232,
+#9c89ff
+);
+border-radius:50px;
+box-shadow:
+0 0 25px rgba(91,140,255,.35),
+0 0 45px rgba(124,196,95,.18);
+}
+
+.step{
+position:relative;
+width:50%;
+padding:20px 35px;
+box-sizing:border-box;
+}
+
+.step.left{
+left:0;
+text-align:right;
+}
+
+.step.right{
+left:50%;
+text-align:left;
+}
+
+.step::after{
+content:"";
+position:absolute;
+top:36px;
+width:22px;
+height:22px;
+border-radius:50%;
+border:4px solid #fff;
+box-shadow:
+0 0 0 6px rgba(255,255,255,.07),
+0 0 18px rgba(0,0,0,.25);
+animation:pulse 3s infinite;
+z-index:3;
+}
+
+@keyframes pulse{
+0%{transform:scale(1);}
+50%{transform:scale(1.1);}
+100%{transform:scale(1);}
+}
+
+.step.left::after{right:-11px;}
+.step.right::after{left:-11px;}
+
+.green::after{background:#7cc45f;}
+.blue::after{background:#5b8cff;}
+.orange::after{background:#ff8a00;}
+.gold::after{background:#f1c232;}
+.purple::after{background:#9c89ff;}
+
+/* Cards */
+
+.road-card{
+position:relative;
+max-width:410px;
+padding:22px;
+border-radius:22px;
+background:linear-gradient(
+135deg,
+rgba(255,255,255,.14),
+rgba(255,255,255,.04)
+);
+backdrop-filter:blur(18px);
+border:1px solid rgba(255,255,255,.12);
+box-shadow:0 12px 40px rgba(0,0,0,.18);
+transition:.4s;
+overflow:hidden;
+}
+
+.step.left .road-card{
+margin-left:auto;
+}
+
+.step.right .road-card{
+margin-right:auto;
+}
+
+.road-card:before{
+content:"";
+position:absolute;
+top:0;
+left:0;
+height:4px;
+width:100%;
+background:linear-gradient(
+90deg,
+#7cc45f,
+#5b8cff,
+#ff8a00
+);
+}
+
+.road-card:hover{
+transform:translateY(-8px);
+box-shadow:0 18px 55px rgba(0,0,0,.22);
+}
+
+.icon{
+font-size:20px;
+display:block;
+margin-bottom:8px;
+}
+
+.road-date{
+display:inline-block;
+padding:6px 14px;
+border-radius:999px;
+font-size:11px;
+font-weight:800;
+margin-bottom:10px;
+letter-spacing:.4px;
+}
+
+.green .road-date{
+background:#7cc45f22;
+color:#c8ffaf;
+}
+
+.blue .road-date{
+background:#5b8cff22;
+color:#bdd6ff;
+}
+
+.orange .road-date{
+background:#ff8a0022;
+color:#ffd7b3;
+}
+
+.gold .road-date{
+background:#f1c23222;
+color:#ffe689;
+}
+
+.purple .road-date{
+background:#9c89ff22;
+color:#ddd6ff;
+}
+
+.road-card h3{
+font-size:20px;
+font-weight:800;
+margin-bottom:8px;
+}
+
+.road-card p{
+font-size:14px;
+line-height:1.5;
+opacity:.88;
+margin-bottom:12px;
+}
+
+.progress-bar{
+height:6px;
+border-radius:20px;
+background:rgba(255,255,255,.08);
+overflow:hidden;
+}
+
+.progress-fill{
+height:100%;
+border-radius:20px;
+background:linear-gradient(
+90deg,
+#7cc45f,
+#5b8cff
+);
+}
+
+.meta{
+display:flex;
+justify-content:space-between;
+margin-top:10px;
+font-size:12px;
+opacity:.78;
+}
+
+/* Mobile */
+@media(max-width:900px){
+
+.timeline-premium:before{
+left:28px;
+}
+
+.step,
+.step.left,
+.step.right{
+width:100%;
+left:0;
+text-align:left;
+padding-left:70px;
+padding-right:14px;
+}
+
+.step.left::after,
+.step.right::after{
+left:17px;
+}
+
+.road-card{
+max-width:100%;
+padding:18px;
+}
+
+.road-card h3{
+font-size:18px;
+}
+
+}
+
+</style>
+
+
+<div class="timeline-premium">
+
+<!-- 1 -->
+<div class="step left green reveal">
+<div class="road-card">
+<span class="icon">🌱</span>
+<div class="road-date">May – July 2025</div>
+<h3>Topic Assessment</h3>
+<p>Research initiation, scope definition and project charter approval.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+<div class="meta"><span>Completed</span><span>100%</span></div>
+</div>
+</div>
+
+
+<!-- 2 -->
+<div class="step right blue reveal">
+<div class="road-card">
+<span class="icon">🧠</span>
+<div class="road-date">15 Aug 2025</div>
+<h3>Project Proposal Submission</h3>
+<p>Proposal formulation and concept validation.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+<div class="meta"><span>Completed</span><span>100%</span></div>
+</div>
+</div>
+
+
+<!-- 3 -->
+<div class="step left blue reveal">
+<div class="road-card">
+<span class="icon">🎤</span>
+<div class="road-date">8–12 Sep 2025</div>
+<h3>Proposal Presentation</h3>
+<p>Research defense and evaluation by panel completed.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+<div class="meta"><span>Completed</span><span>100%</span></div>
+</div>
+</div>
+
+
+<!--4-->
+<div class="step right orange reveal">
+<div class="road-card">
+<span class="icon">⚙️</span>
+<div class="road-date">15–19 Dec 2025</div>
+<h3>Progress Review I</h3>
+<p>Prototype implementation and milestone validation achieved.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+<div class="meta"><span>Completed</span><span>100%</span></div>
+</div>
+</div>
+
+
+<!--5-->
+<div class="step left purple reveal">
+<div class="road-card">
+<span class="icon">📄</span>
+<div class="road-date">March 2026</div>
+<h3>Progress Review II</h3>
+<p>100% completion milestone successfully evaluated.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+<div class="meta"><span>Completed</span><span>100%</span></div>
+</div>
+</div>
+
+
+<!--6-->
+<div class="step right gold reveal">
+<div class="road-card">
+<span class="icon">✅</span>
+<div class="road-date">30 Apr 2026</div>
+<h3>Final Checklist Submission</h3>
+<p>Complete project checklist submission and readiness verification.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:80%"></div></div>
+<div class="meta"><span>Ongoing</span><span>80%</span></div>
+</div>
+</div>
+
+
+<!--7-->
+<div class="step left blue reveal">
+<div class="road-card">
+<span class="icon">🌐</span>
+<div class="road-date">27 Apr – 06 May 2026</div>
+<h3>Website Evaluation & Logbook</h3>
+<p>Research website evaluation and final logbook submission.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div>
+<div class="meta"><span>Ongoing</span><span>75%</span></div>
+</div>
+</div>
+
+
+<!--8 NEW-->
+<div class="step right purple reveal">
+<div class="road-card">
+<span class="icon">🎓</span>
+<div class="road-date">27 Apr – 08 May 2026</div>
+<h3>Final Presentation & Viva</h3>
+<p>Final defense, viva examination, live system demonstration and evaluation.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:70%"></div></div>
+<div class="meta"><span>Ongoing</span><span>70%</span></div>
+</div>
+</div>
+
+
+<!--9-->
+<div class="step left orange reveal">
+<div class="road-card">
+<span class="icon">📚</span>
+<div class="road-date">08 May 2026</div>
+<h3>Research Paper Submission</h3>
+<p>Conference or journal manuscript final submission milestone.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:65%"></div></div>
+<div class="meta"><span>Upcoming</span><span>65%</span></div>
+</div>
+</div>
+
+
+<!--10-->
+<div class="step right green reveal">
+<div class="road-card">
+<span class="icon">📝</span>
+<div class="road-date">13 May 2026</div>
+<h3>Final Thesis Submission</h3>
+<p>Submission of completed dissertation and supporting documents.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:55%"></div></div>
+<div class="meta"><span>Upcoming</span><span>55%</span></div>
+</div>
+</div>
+
+
+<!--11-->
+<div class="step left purple reveal">
+<div class="road-card">
+<span class="icon">🏆</span>
+<div class="road-date">15 Jun 2026</div>
+<h3>Publication Evidence Submission</h3>
+<p>Submission of publication evidence and final project closure.</p>
+<div class="progress-bar"><div class="progress-fill" style="width:40%"></div></div>
+<div class="meta"><span>Upcoming</span><span>40%</span></div>
+</div>
+</div>
+
+
+</div>
+</div>
+</section>
+  <section id="documents">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="section-kicker">Documents</span>
+        <h2>Structured document showcase</h2>
+        
+      </div>
+
+      <div class="doc-grid">
+        <!-- PROJECT PROPOSALS REPOSITORY CARD -->
+<article class="glass doc-card reveal" style="grid-column:span 3; padding:34px;">
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+flex-wrap:wrap;
+gap:15px;
+margin-bottom:30px;">
+
+<div>
+<span class="status completed">● Completed</span>
+
+<h3 style="
+margin-top:16px;
+font-size:30px;
+margin-bottom:8px;">
+Project Proposal Repository
+</h3>
+
+<p style="
+max-width:700px;
+margin:0;
+color:#a9b2d0;">
+Individual research proposals submitted by all four members covering the four major components.
+</p>
+</div>
+
+
+
+</div>
+
+
+
+<div style="
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(270px,1fr));
+gap:24px;">
+
+
+
+<!-- MEMBER 01 -->
+<div style="
+padding:30px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);
+display:flex;
+flex-direction:column;
+min-height:380px;">
+
+<div style="font-size:46px;margin-bottom:18px;">📦</div>
+
+<h4 style="
+margin:0 0 14px;
+font-size:22px;">
+Robotic Learning Module
+</h4>
+
+<p style="
+font-size:14px;
+line-height:1.8;
+color:#a9b2d0;
+flex-grow:1;">
+Member 01 proposal for adaptive robotic interaction framework.
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+margin-top:auto;">
+
+<a href="doc/member1-proposal.pdf"
+target="_blank"
+class="btn btn-secondary btn-small">
+View Proposal
+</a>
+
+<a href="doc/member1-proposal.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+
+<!-- MEMBER 02 -->
+<div style="
+padding:30px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);
+display:flex;
+flex-direction:column;
+min-height:380px;">
+
+<div style="font-size:46px;margin-bottom:18px;">🧠</div>
+
+<h4 style="
+margin:0 0 14px;
+font-size:22px;">
+Material Recognition
+</h4>
+
+<p style="
+font-size:14px;
+line-height:1.8;
+color:#a9b2d0;
+flex-grow:1;">
+Member 02 proposal on DINOv2 based material classification.
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+margin-top:auto;">
+
+<a href="doc/member2-proposal.pdf"
+target="_blank"
+class="btn btn-secondary btn-small">
+View Proposal
+</a>
+
+<a href="doc/member2-proposal.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+
+<!-- MEMBER 03 -->
+<div style="
+padding:30px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);
+display:flex;
+flex-direction:column;
+min-height:380px;">
+
+<div style="font-size:46px;margin-bottom:18px;">🤖</div>
+
+<h4 style="
+margin:0 0 14px;
+font-size:22px;">
+Sorting Recommendation AI
+</h4>
+
+<p style="
+font-size:14px;
+line-height:1.8;
+color:#a9b2d0;
+flex-grow:1;">
+Member 03 proposal on explainable sorting recommendation engine.
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+margin-top:auto;">
+
+<a href="doc/member3-proposal.pdf"
+target="_blank"
+class="btn btn-secondary btn-small">
+View Proposal
+</a>
+
+<a href="doc/member3-proposal.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+
+<!-- MEMBER 04 -->
+<div style="
+padding:30px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);
+display:flex;
+flex-direction:column;
+min-height:380px;">
+
+<div style="font-size:46px;margin-bottom:18px;">👁️</div>
+
+<h4 style="
+margin:0 0 14px;
+font-size:22px;">
+Gaze Direction Module
+</h4>
+
+<p style="
+font-size:14px;
+line-height:1.8;
+color:#a9b2d0;
+flex-grow:1;">
+Member 04 proposal focusing on software-only gaze direction estimation.
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+margin-top:auto;">
+
+<a href="doc/member4-proposal.pdf"
+target="_blank"
+class="btn btn-secondary btn-small">
+View Proposal
+</a>
+
+<a href="doc/member4-proposal.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+</div>
+
+</article>
+<!-- ================= CHECKLIST REPOSITORY ================= -->
+<article class="glass doc-card reveal"
+style="grid-column:span 3; padding:34px;">
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+flex-wrap:wrap;
+gap:15px;
+margin-bottom:30px;">
+
+<div>
+<span class="status completed">● Completed</span>
+
+<h3 style="
+margin-top:16px;
+font-size:30px;
+margin-bottom:8px;">
+Research Checklists Repository
+</h3>
+
+<p style="
+max-width:700px;
+margin:0;
+color:#a9b2d0;">
+Project evaluation checklists and review documents submitted throughout the research.
+</p>
+
+</div>
+
+</div>
+
+
+
+<div style="
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+gap:22px;">
+
+
+
+<!-- CHECKLIST 1 -->
+<div style="
+padding:28px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);">
+
+<div style="font-size:42px;margin-bottom:15px;">
+📑
+</div>
+
+<h4>Checklist 01</h4>
+
+<p style="
+font-size:14px;
+line-height:1.7;
+color:#a9b2d0;">
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+margin-top:20px;">
+
+<a href="doc/checklist1.xlsx"
+target="_blank"
+class="btn btn-secondary btn-small">
+View
+</a>
+
+<a href="doc/checklist1.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+
+<!-- CHECKLIST 2 -->
+<div style="
+padding:28px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);">
+
+<div style="font-size:42px;margin-bottom:15px;">
+📑
+</div>
+
+<h4>Checklist 02</h4>
+
+<p style="
+font-size:14px;
+line-height:1.7;
+color:#a9b2d0;">
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+margin-top:20px;">
+
+<a href="doc/checklist2.pdf"
+target="_blank"
+class="btn btn-secondary btn-small">
+View
+</a>
+
+<a href="doc/checklist2.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+
+<!-- CHECKLIST 3 -->
+<div style="
+padding:28px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);">
+
+<div style="font-size:42px;margin-bottom:15px;">
+📑
+</div>
+
+<h4>Checklist 03</h4>
+
+<p style="
+font-size:14px;
+line-height:1.7;
+color:#a9b2d0;">
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+margin-top:20px;">
+
+<a href="doc/checklist3.pdf"
+target="_blank"
+class="btn btn-secondary btn-small">
+View
+</a>
+
+<a href="doc/checklist3.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+
+<!-- CHECKLIST 4 -->
+<div style="
+padding:28px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);">
+
+<div style="font-size:42px;margin-bottom:15px;">
+📑
+</div>
+
+<h4>Checklist 04</h4>
+
+<p style="
+font-size:14px;
+line-height:1.7;
+color:#a9b2d0;">
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+flex-wrap:wrap;
+margin-top:20px;">
+
+<a href="doc/checklist4.pdf"
+target="_blank"
+class="btn btn-secondary btn-small">
+View
+</a>
+
+<a href="doc/checklist4.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+</div>
+</article>
+        <!-- ================= RESEARCH DOCUMENTS REPOSITORY ================= -->
+<article class="glass doc-card reveal research-docs-repository">
+
+  <div class="research-docs-header">
+    <div>
+      <span class="status completed">● Completed</span>
+
+      <h3>Research Documents Repository</h3>
+
+      <p>
+        Complete research documentation including the final research paper and comprehensive final thesis report.
+      </p>
+    </div>
+  </div>
+
+  <div class="research-docs-horizontal">
+
+    <!-- RESEARCH PAPER -->
+    <div class="research-doc-item">
+      <div class="research-doc-icon">📄</div>
+
+      <div class="research-doc-content">
+        <h4>Research Paper</h4>
+
+        <p>
+          Full paper describing the adaptive and explainable Human-Robot Collaboration system, results, evaluation, and future directions.
+        </p>
+      </div>
+
+      <div class="research-doc-actions">
+        <a href="doc/research-paper.pdf" target="_blank" class="btn btn-secondary btn-small">
+          View
+        </a>
+
+        <a href="doc/research-paper.pdf" download class="btn btn-primary btn-small">
+          Download
+        </a>
+      </div>
+    </div>
+
+    <!-- FINAL REPORT -->
+    <div class="research-doc-item">
+      <div class="research-doc-icon">📘</div>
+
+      <div class="research-doc-content">
+        <h4>Final Report</h4>
+
+        <p>
+          Comprehensive final thesis document including system architecture, implementation details, testing, evaluation, and conclusion.
+        </p>
+      </div>
+
+      <div class="research-doc-actions">
+        <a href="doc/final-report.pdf" target="_blank" class="btn btn-secondary btn-small">
+          View
+        </a>
+
+        <a href="doc/final-report.pdf" download class="btn btn-primary btn-small">
+          Download
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+</article>
+
+<!-- INDIVIDUAL THESIS DOCUMENTS -->
+<article class="glass doc-card reveal" style="grid-column:span 3; padding:34px;">
+
+<div style="
+display:flex;
+justify-content:space-between;
+align-items:center;
+flex-wrap:wrap;
+gap:15px;
+margin-bottom:30px;">
+
+<div>
+<span class="status completed">● Completed</span>
+
+<h3 style="
+margin-top:16px;
+font-size:30px;
+margin-bottom:8px;">
+Thesis Repository
+</h3>
+
+<p style="
+max-width:700px;
+margin:0;
+color:#a9b2d0;">
+Complete thesis documents submitted by each researcher for the four project components.
+</p>
+
+</div>
+
+
+</div>
+
+
+<div style="
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+gap:22px;">
+
+
+<!-- Thesis 3 -->
+<div style="
+padding:28px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);">
+
+<div style="font-size:42px;margin-bottom:15px;">📙</div>
+
+<h4>Explainable AI Thesis</h4>
+
+<p style="
+font-size:14px;
+line-height:1.7;
+color:#a9b2d0;">
+Research dissertation for explainable sorting recommendation engine.
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+margin-top:20px;
+flex-wrap:wrap;">
+
+<a href="doc/member1-thesis.pdf"
+class="btn btn-secondary btn-small"
+target="_blank">
+View
+</a>
+
+<a href="doc/member1-thesis.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+
+<!-- Thesis 2 -->
+<div style="
+padding:28px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);">
+
+<div style="font-size:42px;margin-bottom:15px;">📗</div>
+
+<h4>Material Recognition Thesis</h4>
+
+<p style="
+font-size:14px;
+line-height:1.7;
+color:#a9b2d0;">
+Dissertation covering DINOv2 material classification framework.
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+margin-top:20px;
+flex-wrap:wrap;">
+
+<a href="doc/member2-thesis.pdf"
+class="btn btn-secondary btn-small"
+target="_blank">
+View
+</a>
+
+<a href="doc/member2-thesis.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+
+<!-- Thesis 4 -->
+<div style="
+padding:28px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);">
+
+<div style="font-size:42px;margin-bottom:15px;">📕</div>
+
+<h4>Robotic Learning Thesis</h4>
+
+<p style="
+font-size:14px;
+line-height:1.7;
+color:#a9b2d0;">
+Full dissertation for adaptive robotic sorting and pattern learning.
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+margin-top:20px;
+flex-wrap:wrap;">
+
+<a href="doc/member3-thesis.pdf"
+class="btn btn-secondary btn-small"
+target="_blank">
+View
+</a>
+
+<a href="doc/member3-thesis.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+
+<!-- Thesis 1 -->
+<div style="
+padding:28px;
+border-radius:24px;
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);">
+
+<div style="font-size:42px;margin-bottom:15px;">📘</div>
+
+<h4>Gaze Direction Thesis</h4>
+
+<p style="
+font-size:14px;
+line-height:1.7;
+color:#a9b2d0;">
+Complete dissertation for software-only gaze direction estimation module.
+</p>
+
+<div style="
+display:flex;
+gap:12px;
+margin-top:20px;
+flex-wrap:wrap;">
+
+<a href="doc/member4-thesis.pdf"
+class="btn btn-secondary btn-small"
+target="_blank">
+View
+</a>
+
+<a href="doc/member4-thesis.pdf"
+download
+class="btn btn-primary btn-small">
+Download
+</a>
+
+</div>
+</div>
+
+
+</div>
+</article>
+      </div>
+    </div>
+  </section>
+
+  <section id="presentations">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="section-kicker">Presentations</span>
+        <h2>Project Presentation Slides and Evaluations</h2>
+        <p>
+         Explore proposal, progress evaluation, and final defense presentation slides prepared throughout the research journey.
+        </p>
+      </div>
+
+      <div class="presentation-grid">
+        <article class="glass present-card reveal">
+          <h3>Proposal Presentation</h3>
+          <p>Initial research concept pitch covering problem background, novelty, and planned architecture.</p>
+          <div class="card-actions">
+            <a class="btn btn-secondary btn-small" href="doc/proposal-presentation.pdf" target="_blank">Preview</a>
+            <a class="btn btn-primary btn-small" href="doc/proposal-presentation.pdf" download>Download</a>
+          </div>
+        </article>
+
+        <article class="glass present-card reveal">
+          <h3>Progress Presentation I</h3>
+          <p>Mid-project walkthrough with prototype visuals, methodology refinements, and model progress.</p>
+          <div class="card-actions">
+            <a class="btn btn-secondary btn-small" href="doc/progress-presentation.pdf" target="_blank">Preview</a>
+            <a class="btn btn-primary btn-small" href="doc/progress-presentation.pdf" download>Download</a>
+          </div>
+        </article>
+
+        <article class="glass present-card reveal">
+          <h3>Progress Presentation II</h3>
+          <p>Second progress project presentation with results, discussion, conclusions, and live system showcase highlights.</p>
+          <div class="card-actions">
+            <a class="btn btn-secondary btn-small" href="doc/progress-presentation-2.pdf" target="_blank">Preview</a>
+            <a class="btn btn-primary btn-small" href="doc/progress-presentation-2.pdf" download>Download</a>
+          </div>
+        </article>
+        <article class="glass present-card reveal">
+  <h3>Final Viva Presentation</h3>
+  <p>
+    Final defense presentation covering complete system implementation,
+    experimental results, evaluation outcomes, contributions, and future work.
+  </p>
+
+  <div class="card-actions">
+    <a class="btn btn-secondary btn-small"
+       href="doc/final-viva-presentation.pdf"
+       target="_blank">
+       Preview
+    </a>
+
+    <a class="btn btn-primary btn-small"
+       href="doc/final-viva-presentation.pdf"
+       download>
+       Download
+    </a>
+  </div>
+</article>
+      </div>
+    </div>
+  </section>
+
+  <section id="team">
+<div class="container">
+
+<div class="section-head reveal">
+<span class="section-kicker">Research Team</span>
+<h2>Meet The Research Team</h2>
+<p>
+Academic supervision and multidisciplinary student research team.
+</p>
+</div>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Nunito:wght@400;600;700&display=swap');
+
+.supervision-title{
+font-family:'Baloo 2',cursive;
+text-align:center;
+font-size:38px;
+margin-bottom:8px;
+}
+
+.supervision-sub{
+font-family:'Nunito',sans-serif;
+text-align:center;
+max-width:620px;
+margin:0 auto 35px;
+font-size:15px;
+line-height:1.6;
+opacity:.8;
+}
+
+/* SMALLER GRID */
+.supervision-grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(280px,320px));
+justify-content:center;
+gap:22px;
+max-width:760px;
+margin:auto;
+}
+
+/* COMPACT CARD */
+.faculty-card{
+padding:26px 24px;
+text-align:center;
+border-radius:24px;
+background:linear-gradient(
+145deg,
+rgba(255,255,255,.14),
+rgba(255,255,255,.04)
+);
+backdrop-filter:blur(18px);
+border:1px solid rgba(255,255,255,.12);
+box-shadow:0 10px 35px rgba(0,0,0,.14);
+transition:.35s;
+position:relative;
+overflow:hidden;
+}
+
+.faculty-card:before{
+content:"";
+position:absolute;
+top:0;
+left:0;
+height:4px;
+width:100%;
+background:linear-gradient(
+90deg,
+#5b8cff,
+#9d5cff
+);
+}
+
+.faculty-card:hover{
+transform:translateY(-6px);
+}
+
+/* SMALLER PHOTO */
+.avatar-shell{
+width:105px;
+height:105px;
+margin:auto;
+padding:4px;
+border-radius:50%;
+background:linear-gradient(
+135deg,
+#5b8cff,
+#9d5cff
+);
+margin-bottom:16px;
+}
+
+.avatar{
+width:100%;
+height:100%;
+border-radius:50%;
+object-fit:cover;
+border:4px solid #fff;
+}
+
+/* SMALLER BADGE */
+.role-badge{
+display:inline-block;
+padding:7px 16px;
+border-radius:999px;
+font-family:'Nunito',sans-serif;
+font-size:11px;
+font-weight:800;
+letter-spacing:.5px;
+text-transform:uppercase;
+background:linear-gradient(
+135deg,#5b8cff,#9d5cff);
+color:#fff;
+margin-bottom:12px;
+}
+
+/* SMALLER NAME */
+.faculty-name{
+font-family:'Baloo 2',cursive;
+font-size:25px;
+margin:0 0 8px;
+line-height:1.15;
+}
+
+/* SMALLER DETAILS */
+.faculty-title{
+font-family:'Nunito',sans-serif;
+font-size:14px;
+font-weight:700;
+color:#7ea9ff;
+line-height:1.5;
+margin-bottom:10px;
+}
+
+.faculty-info{
+font-family:'Nunito',sans-serif;
+font-size:14px;
+line-height:1.6;
+opacity:.85;
+}
+
+.email-link{
+display:inline-block;
+margin-top:8px;
+font-size:14px;
+font-weight:700;
+text-decoration:none;
+color:#6ea8ff;
+}
+
+@media(max-width:768px){
+
+.supervision-title{
+font-size:32px;
+}
+
+.supervision-grid{
+grid-template-columns:1fr;
+max-width:320px;
+}
+
+}
+/* ================= HORIZONTAL RESEARCH DOCUMENTS ================= */
+
+.research-docs-repository {
+  width: 100%;
+  grid-column: 1 / -1;
+  padding: 34px;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.research-docs-header {
+  margin-bottom: 28px;
+}
+
+.research-docs-header h3 {
+  margin-top: 16px;
+  font-size: clamp(24px, 3vw, 30px);
+  margin-bottom: 8px;
+}
+
+.research-docs-header p {
+  max-width: 780px;
+  margin: 0;
+  color: #a9b2d0;
+}
+
+.research-docs-horizontal {
+  display: flex;
+  gap: 22px;
+  width: 100%;
+  align-items: stretch;
+}
+
+.research-doc-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 24px;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.08);
+  box-sizing: border-box;
+}
+
+.research-doc-icon {
+  flex: 0 0 auto;
+  font-size: 42px;
+}
+
+.research-doc-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.research-doc-content h4 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.research-doc-content p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #a9b2d0;
+}
+
+.research-doc-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+/* Prevent button text wrapping */
+.research-doc-actions .btn {
+  white-space: nowrap;
+}
+
+/* Tablet and mobile: stack safely */
+@media (max-width: 980px) {
+  .research-docs-horizontal {
+    flex-direction: column;
+  }
+
+  .research-doc-item {
+    align-items: flex-start;
+  }
+
+  .research-doc-actions {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .research-doc-item {
+    flex-direction: column;
+  }
+
+  .research-doc-actions {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+  }
+
+  .research-doc-actions .btn {
+    flex: 1;
+    text-align: center;
+    justify-content: center;
+  }
+}
+</style>
+
+
+<h3 class="supervision-title reveal">
+Supervision Panel
+</h3>
+
+<p class="supervision-sub reveal">
+Academic supervision and research guidance throughout the project.
+</p>
+
+
+<div class="supervision-grid">
+
+<!-- Supervisor -->
+<article class="faculty-card reveal">
+
+<div class="avatar-shell">
+<img src="images/supervisor.jpg" class="avatar">
+</div>
+
+<span class="role-badge">
+Supervisor
+</span>
+
+<h3 class="faculty-name">
+R M H C Rathnayake
+</h3>
+
+<div class="faculty-title">
+Lecturer <br>
+Department of Computer Science
+</div>
+
+<div class="faculty-info">
+Faculty of Computing<br>
+
+<a class="email-link"
+href="mailto:samadhi.r@sliit.lk">
+samadhi.r@sliit.lk
+</a>
+
+</div>
+
+</article>
+
+
+<!-- Co Supervisor -->
+<article class="faculty-card reveal">
+
+<div class="avatar-shell">
+<img
+src="images/co-supervisor.jpeg"
+class="avatar"
+style="
+object-position:center top;
+transform:scale(.95);">
+</div>
+
+<span class="role-badge">
+Co-Supervisor
+</span>
+
+<h3 class="faculty-name">
+A.N. Alexander
+</h3>
+
+<div class="faculty-title">
+Assistant Lecturer <br>
+Department of Computer Science
+</div>
+
+<div class="faculty-info">
+Faculty of Computing<br>
+
+<a class="email-link"
+href="mailto:amila.al@sliit.lk">
+amila.al@sliit.lk
+</a>
+
+</div>
+
+</article>
+
+</div>
+<style>
+.team-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:25px;
+}
+
+/* CARD */
+.faculty-card{
+  padding:20px;
+  border-radius:18px;
+  text-align:center;
+  background:rgba(255,255,255,0.08);
+  backdrop-filter:blur(10px);
+  box-shadow:0 8px 25px rgba(0,0,0,0.2);
+  transition:0.3s;
+}
+
+.faculty-card:hover{
+  transform:translateY(-6px);
+}
+
+/* IMAGE */
+.avatar-wrap{
+  width:100px;
+  height:100px;
+  margin:0 auto 15px;
+  border-radius:50%;
+  overflow:hidden;
+  border:3px solid rgba(255,255,255,0.2);
+}
+
+.avatar{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+/* TEXT */
+.role{
+  font-size:12px;
+  color:#7980ff;
+  display:block;
+  margin-bottom:6px;
+  font-weight:600;
+}
+
+.faculty-card h3{
+  font-size:18px;
+  margin:8px 0;
+}
+
+.id{
+  font-size:13px;
+  opacity:0.7;
+  margin-bottom:10px;
+}
+
+.faculty-card p{
+  font-size:14px;
+  opacity:0.85;
+}
+
+/* LINK BUTTON */
+.linkedin-btn{
+  margin-top:15px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  padding:10px 16px;
+  border-radius:999px;
+  background:rgba(10,102,194,.18);
+  border:1px solid rgba(10,102,194,.35);
+  color:#8fc4ff;
+  font-size:14px;
+  font-weight:600;
+  text-decoration:none;
+  transition:0.3s;
+}
+
+.linkedin-btn:hover{
+  background:rgba(10,102,194,.28);
+}
+
+/* 📱 TABLET */
+@media (max-width:1000px){
+  .team-grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+/* 📱 MOBILE */
+@media (max-width:600px){
+  .team-grid{
+    grid-template-columns:1fr;
+  }
+
+  .faculty-card{
+    padding:18px;
+  }
+
+  .avatar-wrap{
+    width:85px;
+    height:85px;
+  }
+
+  .faculty-card h3{
+    font-size:16px;
+  }
+
+  .faculty-card p{
+    font-size:13px;
+  }
+
+  .linkedin-btn{
+    width:100%;
+  }
+}
+</style>
+
+<!-- TITLE -->
+<h3 style="text-align:center;margin-bottom:30px;font-size:32px;">
+Research Members
+</h3>
+
+<!-- GRID -->
+<div class="team-grid">
+
+<!-- Member 1 -->
+<article class="faculty-card reveal">
+  <div class="avatar-shell">
+    <img src="images/member-1.jpg" class="avatar">
+  </div>
+  <span class="role-badge">Member 01</span>
+  <h3>Niwarthana K D Y</h3>
+  <div class="id">IT22888716</div>
+  <p>Explainable AI Module</p>
+  <a href="https://www.linkedin.com/in/yeshani-niwarthana-69a374283/" target="_blank" class="linkedin-btn">
+    🔗 LinkedIn
+  </a>
+</article>
+
+<!-- Member 2 -->
+<article class="faculty-card reveal">
+  <div class="avatar-shell">
+    <img src="images/member-2.jpg" class="avatar">
+  </div>
+  <span class="role-badge">Member 02</span>
+  <h3>Liyanagamage H W</h3>
+  <div class="id">IT22238962</div>
+  <p>Material Recognition Module</p>
+  <a href="https://www.linkedin.com/in/hiruni-liyanagamage-b4bab130b/" target="_blank" class="linkedin-btn">
+    🔗 LinkedIn
+  </a>
+</article>
+
+<!-- Member 3 -->
+<article class="faculty-card reveal">
+  <div class="avatar-shell">
+    <img src="images/member-3.jpg" class="avatar">
+  </div>
+  <span class="role-badge">Member 03</span>
+  <h3>Muthuweera N M K D</h3>
+  <div class="id">IT22089618</div>
+  <p>Robotic Sorting Module</p>
+  <a href="https://www.linkedin.com/in/kithmi-dilthara-nagalmullage-3153282b8/" target="_blank" class="linkedin-btn">
+    🔗 LinkedIn
+  </a>
+</article>
+
+<!-- Member 4 -->
+<article class="faculty-card reveal">
+  <div class="avatar-shell">
+    <img src="images/member-4.jpeg" class="avatar">
+  </div>
+  <span class="role-badge">Member 04</span>
+  <h3>Jayasundara J M U H</h3>
+  <div class="id">IT22078032</div>
+  <p>Gaze Direction Module</p>
+  <a href="https://www.linkedin.com/in/uvindya-jayasundara-4b3b8b267/" target="_blank" class="linkedin-btn">
+    🔗 LinkedIn
+  </a>
+</article>
+
+</div>
+
+
+</div>
+
+</div>
+</section>
+  <section id="contact">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="section-kicker">Contact</span>
+        <p>
+          Contact the research team for project inquiries, academic collaborations, feedback, or demonstration requests. We welcome discussions related to this research and its applications
+        </p>
+      </div>
+
+      <div class="contact-wrap">
+        <div class="glass contact-info reveal">
+          <h3>Get in touch</h3>
+          <p>
+            Reach out for research collaboration, project reviews, presentation invitations, or technical discussions around
+            human-robot collaboration, educational robotics, and explainable AI systems.
+          </p>
+
+          <div class="info-list">
+            <div class="info-item">
+              <div class="icon-box">✉️</div>
+              <div>
+                <strong>Email</strong>
+                <span>quadruplets321@gmail.com</span>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="icon-box">📞</div>
+              <div>
+                <strong>Phone</strong>
+                <span>+94 71 878 9167</span>
+              </div>
+            </div>
+
+            <div class="info-item">
+              <div class="icon-box">📍</div>
+              <div>
+                <strong>Institution</strong>
+                <span>Sri Lanka Institute of Information Technology<br>Faculty of Computing</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+<form 
+action="https://formspree.io/f/xqewjpgw"
+method="POST"
+class="glass contact-card reveal">
+<input
+type="hidden"
+name="_next"
+value="https://hasanduni.github.io/Woody-the-Educational-Robot/thankyou.html">
+<h3>Send a message</h3>
+<p>Send us your inquiry or collaboration request.</p>
+
+<input
+type="hidden"
+name="_subject"
+value="New Research Website Inquiry">
+
+<div class="form-grid">
+
+<div class="field">
+<input
+type="text"
+id="name"
+name="name"
+placeholder=" "
+required>
+<label for="name">
+Full Name
+</label>
+</div>
+
+
+<div class="field">
+<input
+type="email"
+id="email"
+name="email"
+placeholder=" "
+required>
+<label for="email">
+Email Address
+</label>
+</div>
+
+
+<div class="field">
+<input
+type="tel"
+id="phone"
+name="phone"
+placeholder=" ">
+<label for="phone">
+Phone Number
+</label>
+</div>
+
+
+<div class="field">
+<textarea
+id="message"
+name="message"
+placeholder=" "
+required></textarea>
+
+<label for="message">
+Your Message
+</label>
+</div>
+
+
+<button
+type="submit"
+class="btn btn-primary">
+Submit Inquiry
+</button>
+
+</div>
+
+</form>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-inner">
+      <div>© 2026 Adaptive and Explainable Human-Robot Collaboration for Intelligent Sorting Systems</div>
+    </div>
+  </footer>
+
+  <script>
+    const navbar = document.getElementById('navbar');
+    const mobileToggle = document.getElementById('mobileToggle');
+    const navLinks = document.getElementById('navLinks');
+    const navAnchors = [...document.querySelectorAll('.nav-links a')];
+    const revealEls = document.querySelectorAll('.reveal');
+    const sections = [...document.querySelectorAll('section[id]')];
+
+    function onScroll(){
+      if(window.scrollY > 20){
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+
+      const scrollPos = window.scrollY + 140;
+      sections.forEach(section => {
+        const id = section.getAttribute('id');
+        const top = section.offsetTop;
+        const bottom = top + section.offsetHeight;
+        const link = document.querySelector('.nav-links a[href="#' + id + '"]');
+        if(link && scrollPos >= top && scrollPos < bottom){
+          navAnchors.forEach(a => a.classList.remove('active'));
+          link.classList.add('active');
+        }
+      });
+    }
+
+    const observer = new IntersectionObserver((entries)=>{
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {threshold:0.12});
+
+    revealEls.forEach(el => observer.observe(el));
+
+    mobileToggle.addEventListener('click', ()=>{
+      navLinks.classList.toggle('show');
+    });
+
+    navAnchors.forEach(link=>{
+      link.addEventListener('click', ()=>{
+        navLinks.classList.remove('show');
+      });
+    });
+
+    window.addEventListener('scroll', onScroll);
+    onScroll();
+
+    
+  </script>
+</body>
+</html>
